@@ -1,0 +1,14 @@
+services:
+  genie-api-gateway:
+    build:
+      context: .
+    image: genie-api-gateway:0.1.0
+    container_name: genie-api-gateway
+    ports:
+      - "${GATEWAY_PORT:-38085}:38085"
+    env_file:
+      - ${GATEWAY_ENV_FILE:-.env}
+    environment:
+      UVICORN_HOST: "0.0.0.0"
+      UVICORN_PORT: "38085"
+    restart: unless-stopped

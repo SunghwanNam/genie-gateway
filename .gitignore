@@ -1,0 +1,45 @@
+# .gitignore 파일 내용
+
+# Python 가상 환경 폴더
+.venv/
+venv/
+
+# 환경 변수 파일과 로컬 백업본(민감 정보 포함)
+.env*
+!.env.example
+!.env.*.example
+
+# 압축 파일
+*.tar
+*.zip
+*.gz
+
+# macOS 시스템 파일
+.DS_Store
+
+# 렌더링·참고 산출물은 제외하되 개발 기준 Markdown은 버전 관리
+txt_docs/*
+!txt_docs/*.md
+
+# Python 캐시·테스트 산출물
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+
+# 로컬 생성 산출물
+outputs/
+build/
+tmp/
+visualizations/
+
+# 배포 스크립트가 원본 app/에서 매번 생성하는 Databricks Apps 복사본
+deploy/databricks_app_gateway/app/
+
+# 개인 IDE·AI 도구 설정 및 로컬 작업 지침
+.cursor/
+.vscode/
+AGENTS.md
+
+# 과거 독립 실행 검증본(하드코딩 자격증명 포함, 현재 앱 진입점 아님)
+main_log.py

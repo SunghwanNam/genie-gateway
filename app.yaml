@@ -1,0 +1,47 @@
+command:
+  - uvicorn
+  - app.main:app
+env:
+  # Apps 인증 프록시가 OAuth를 검증한 뒤 Gateway가 X-API-Key를 추가 검증한다.
+  - name: GATEWAY_AUTH_MODE
+    value: API_KEY
+
+  # Lakebase Autoscaling App Resource(리소스 키: postgres)를 사용한다.
+  # PGHOST, PGPORT, PGDATABASE, PGUSER, PGSSLMODE는 Apps가 자동 주입한다.
+  - name: DATABASE_MODE
+    value: LAKEBASE
+  - name: DATABASE_SCHEMA
+    value: genie_gw
+  - name: LAKEBASE_ENDPOINT
+    valueFrom: postgres
+
+  - name: APP_ENV
+    value: databricks_apps
+  - name: LOG_LEVEL
+    value: INFO
+  - name: DOCS_ENABLED
+    value: "true"
+
+  # 시연용 커스텀 Chat UI. 운영 API 전용 배포에서는 false로 변경한다.
+  - name: CUSTOM_CHAT_UI_ENABLED
+    value: "true"
+  - name: CUSTOM_CHAT_LOCAL_ONLY
+    value: "false"
+  - name: ADMIN_UI_ENABLED
+    value: "true"
+  # 최초 관리자 설정을 허용할 Databricks 로그인 이메일
+  - name: ADMIN_BOOTSTRAP_EMAIL
+    value: shnam@saltware.co.kr
+  - name: API_KEY_ENCRYPTION_KEY
+    valueFrom: api-key-encryption-key
+
+  - name: AUDIT_PAYLOADS
+    value: "false"
+  - name: ALLOW_INSECURE_UPSTREAM
+    value: "false"
+  - name: SUPERVISOR_GATEWAY_MAX_ACTIVE_RUNS
+    value: "40"
+  - name: SUPERVISOR_USER_MAX_ACTIVE_RUNS
+    value: "10"
+  - name: SUPERVISOR_USER_AGENT_MAX_ACTIVE_RUNS
+    value: "5"

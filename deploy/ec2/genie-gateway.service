@@ -1,0 +1,21 @@
+[Unit]
+Description=Genie API Gateway
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=genie-gateway
+Group=genie-gateway
+EnvironmentFile=/etc/genie-gateway/gateway.env
+WorkingDirectory=/opt/genie-gateway/runtime/current
+ExecStart=/opt/genie-gateway/runtime/current/bin/genie-gateway
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

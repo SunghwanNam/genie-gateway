@@ -1,0 +1,40 @@
+.approval-panel {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #fdb022;
+  border-radius: 12px;
+  background: #fffaeb;
+}
+.approval-panel strong { display: block; color: #93370d; }
+.approval-panel pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #475467;
+}
+.approval-panel div { display: flex; gap: 8px; }
+.approval-panel button { border: 0; border-radius: 8px; padding: 9px 13px; cursor: pointer; }
+.approval-panel .approve { background: #f0444f; color: #fff; }
+.approval-panel .reject { background: #fff; border: 1px solid #d0d5dd; color: #344054; }
+.approval-panel.decided { color: #667085; border-color: #e4e7ec; background: #f9fafb; }
+.scroll-to-bottom {
+  position: fixed;
+  right: 28px;
+  bottom: 132px;
+  z-index: 20;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #d0d5dd;
+  border-radius: 50%;
+  background: #fff;
+  color: #344054;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 5px 18px rgba(16, 24, 40, .16);
+}
+.scroll-to-bottom:hover { background: #f9fafb; }
+.scroll-to-bottom[hidden] { display: none; }
+@media (max-width: 640px) {
+  .scroll-to-bottom { right: 16px; bottom: 142px; }
+}
