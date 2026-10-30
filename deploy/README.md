@@ -23,6 +23,10 @@ build/SHA256SUMS-<VERSION>.txt
 생성본으로 갱신된다. Secret, `.env`, 가상환경, Git 메타데이터 및 로컬 빌드 결과는
 패키지에 포함하지 않는다.
 
+EC2 최종 실행 패키지에는 `sql/installation/`의 신규 설치 및 기존 환경 업데이트 SQL 전체가
+포함된다. 기존 DB의 관리자 ID 전환은 애플리케이션 교체 직전에
+`008_rename_default_admin.sql`을 한 번 적용한다.
+
 `databricks_app_gateway/`는 Databricks Apps에 업로드할 최소 실행 패키지다.
 애플리케이션 소스를 변경한 뒤 다음 명령으로 패키지를 다시 생성한다.
 

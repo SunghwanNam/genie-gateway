@@ -264,7 +264,8 @@ CUBE가 Supervisor Agent를 선택한 뒤 Databricks endpoint URL로 직접 호�
 | 이름 | 필수 | 설명 |
 |---|---|---|
 | `source_system` | Y | 등록된 호출 시스템 코드. 예: `CUBE` |
-| `user_id` | Y | 호출 시스템 안에서 사용자를 유일하게 식별하는 값 |
+| `user_id` | Agent 목록만 N | 호출 시스템 안에서 사용자를 유일하게 식별하는 값. 목록 이외 API에서는 필수 |
+| `include_inactive` | Agent 목록만 N | `true`이면 해당 시스템에서 해제되거나 효력이 종료된 Agent 매핑 포함. 기본값 `false` |
 
 공통 request header:
 
@@ -277,6 +278,16 @@ CUBE가 Supervisor Agent를 선택한 뒤 Databricks endpoint URL로 직접 호�
 
 `user_id`는 CUBE 테이블의 특정 PK를 의미하지 않는다. Gateway의 Conversation 소유권 확인과
 Supervisor 사용자 컨텍스트 전달에 사용하는 외부 사용자 식별자다.
+
+`GET /api/v1/agents` 응답은 공개 Agent 정보와 함께 `active`, `registered_at`, `released_at`,
+`updated_at`, `deleted_at`을 반환한다. `deleted_at`은 Agent 자체의 전역 삭제가 아니라 호출
+시스템과 Agent 간 매핑의 해제 또는 효력 종료 시각이다. 따라서 한 시스템의 매핑 해제는 다른
+시스템에서 같은 Agent를 사용하는 데 영향을 주지 않는다.
+Gateway Admin의 Agent `삭제`는 이 수명주기를 적용하는 소프트 삭제이며 물리 레코드와 기존
+대화·요청 이력을 제거하지 않는다. 기본 관리 목록은 활성 Agent만 표시하고 `비활성 포함`을
+선택하면 삭제 시각과 함께 조회하여 복구할 수 있다. 복구 시 매핑의 `eff_end_dt`를 제거한다.
+Agent 목록은 인증된 API Client의 시스템 매핑을 조회하므로 `user_id`를 생략할 수 있다.
+`user_id`를 포함한 기존 호출도 하위 호환을 위해 허용하지만 목록 필터링에는 사용하지 않는다.
 
 ### 5.2 응답 생성
 

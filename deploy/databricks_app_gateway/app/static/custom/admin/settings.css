@@ -1,0 +1,6 @@
+.limit-grid { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)); gap:14px; padding:20px 22px; }
+.limit-grid label { margin:0; }
+.limit-grid small { display:block; min-height:36px; margin-top:6px; color:#667085; font-weight:400; }
+.limit-actions { display:flex; justify-content:flex-end; padding:0 22px 20px; }
+@media(max-width:900px) { .limit-grid { grid-template-columns:1fr 1fr; } }
+@media(max-width:560px) { .limit-grid { grid-template-columns:1fr; } }

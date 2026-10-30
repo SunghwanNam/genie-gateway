@@ -1,7 +1,7 @@
 # Genie API Gateway
 
-외부 시스템이 Databricks의 실제 Space/Agent ID로 공식 Genie API 경로를 호출하면,
-Gateway가 X-API-Key와 시스템별 사용 권한을 검증한 뒤 동일한 ID로 Databricks에 중계하는
+외부 시스템이 Gateway 논리 Space/Agent ID 또는 기존 Databricks 실제 ID로 Genie API 경로를 호출하면,
+Gateway가 X-API-Key와 시스템별 사용 권한을 검증한 뒤 등록된 Databricks 실제 ID로 중계하는
 FastAPI 게이트웨이입니다.
 
 ## 동작 구조
@@ -16,12 +16,13 @@ FastAPI 게이트웨이입니다.
 
 - Controller → Service → Repository 구조
 - 모든 외부 I/O 비동기 처리
-- 실제 Databricks Space/Agent ID를 공식 API 경로와 응답에 그대로 사용
+- Agent 목록의 논리 `agent_id`를 공식 호환 API 경로에 사용하면 Gateway가 등록된 Databricks 실제 ID로 변환
+- 기존 Databricks Space/Agent ID 호출도 하위 호환을 위해 유지
 - Chat mode JSON/PNG 및 Agent mode SSE 스트리밍 전달
 - `api_req_hst`에 요청 메타데이터 저장
 - Chat 질문은 `genie_msg_hst`, AI 답변·SQL·시각화는 `genie_msg_atch_dtl`, 상태 전이는 `genie_msg_stts_hst`에 정규화 저장
 - `AUDIT_PAYLOADS=false`이면 감사 테이블의 중복 요청·응답 JSON만 저장하지 않으며 정규화된 Chat 이력은 계속 저장
-- `source_system`, `user_id`를 Gateway 전용 Query Parameter로 받고 Databricks Query Parameter로는 전달하지 않음
+- `source_system`, `user_id`를 Gateway 전용 Query Parameter로 받고 Databricks Query Parameter로는 전달하지 않음. 단, 통합 Agent 목록은 시스템 단위 조회이므로 `user_id`가 선택 사항
 - Chat 시작·후속 질문과 Agent `input_text`에는 Gateway가 `[user_id: <value>]`를 내부 컨텍스트로 삽입
 - 삽입된 사용자 컨텍스트는 외부 API 응답, SSE, 정규화된 Chat 이력과 감사 Payload에서 제거
 - `ai_cnvs_mst` 기준 사용자별 Conversation 소유권 검증
@@ -29,7 +30,8 @@ FastAPI 게이트웨이입니다.
 
 ## 구현 API
 
-Databricks 공식 경로를 그대로 사용합니다.
+Databricks 공식 경로를 그대로 사용하되 `{space_id}`와 `{agent_id}`에는 Agent 목록이 반환한
+Gateway 논리 ID를 권장합니다. 기존 Databricks 실제 ID도 계속 호환합니다.
 
 - Chat mode: `/api/2.0/genie/spaces/{space_id}/...`
   - 대화 시작·목록·삭제
@@ -40,7 +42,7 @@ Databricks 공식 경로를 그대로 사용합니다.
 - Agent mode: `/api/2.0/genie/agents/{agent_id}/responses`
 - Agent mode: `/api/2.0/genie/agents/{agent_id}/conversations/{conversation_id}/responses/{response_id}/cancel`
 - Agent mode: `/api/2.0/genie/agents/{agent_id}/conversations/{conversation_id}/items`
-- 통합 Agent 목록: `GET /api/v1/agents`
+- 통합 Agent 목록: `GET /api/v1/agents?source_system=CUBE` (`user_id`는 선택, `include_inactive=true`이면 시스템별 비활성 매핑 포함)
 - Supervisor 응답(SSE): `POST /api/v1/agents/{agent_id}/responses`
 - Supervisor Run 상태: `GET /api/v1/agents/{agent_id}/runs/{run_id}`
 - Supervisor Run 중단: `POST /api/v1/agents/{agent_id}/runs/{run_id}/cancel`
@@ -83,7 +85,10 @@ CUSTOM_CHAT_LOCAL_ONLY=true
 - `CUSTOM_CHAT_UI_ENABLED=false`이면 `404` 반환
 - `CUSTOM_CHAT_LOCAL_ONLY=true`이면 localhost 이외의 접근을 `403`으로 차단
 - Agent와 기본 라우팅은 `/custom/admin`에서 등록
+- Admin Web의 기본 관리자 ID는 `admin`이며 기존 설치는 `008_rename_default_admin.sql`을 한 번 적용
 - Agent 등록 시 API 모드(`CHAT`, `AGENT`, `BOTH`)를 선택하고, `CHAT`은 Genie Space ID, `AGENT`는 Agent ID, `BOTH`는 두 ID를 모두 입력
+- Admin Web의 `삭제`는 물리 삭제가 아니라 시스템-Agent 매핑의 소프트 삭제다. 기본 목록에서는 숨기고 `비활성 포함`에서 조회·복구할 수 있으며 기존 대화와 요청 이력은 유지한다.
+- Agent 소프트 삭제 시 매핑의 `use_yn='N'`, `dflt_yn='N'`, `eff_end_dt=현재시각`을 기록하고, 다른 활성 시스템 매핑이 없을 때만 Agent 마스터를 비활성화한다. 기본 Agent를 삭제하면 다음 활성 Agent를 기본으로 승격한다.
 - 상단 Agent 드롭다운에는 인증 시스템에 연결된 활성 Agent만 표시하며, Agent를 변경하면 해당 Agent의 대화 이력으로 전환
 - 선택한 Agent와 `CHAT`·`AGENT` 모드는 URL Query Parameter에 유지하며, 지원하지 않는 모드 버튼은 비활성화
 - 기존 Gateway Service를 호출하므로 Agent 라우팅, Conversation 소유권 및 Message Mapper를 동일하게 검증

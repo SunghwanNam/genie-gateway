@@ -19,22 +19,22 @@
       --db-green: #0E8A16;
       --db-purple: #6B46C1;
       --db-red: #D9381E;
-      
+
       --bg-main: #F9FBFD;
       --bg-card: #FFFFFF;
       --bg-sidebar: #102128;
       --bg-code: #1E293B;
       --bg-code-header: #0F172A;
-      
+
       --text-main: #1E293B;
       --text-muted: #64748B;
       --text-sidebar: #CBD5E1;
       --text-sidebar-muted: #64748B;
       --text-code: #E2E8F0;
-      
+
       --border-color: #E2E8F0;
       --border-dark: #334155;
-      
+
       --sidebar-width: 280px;
       --header-height: 60px;
     }
@@ -1044,7 +1044,7 @@ OAuthToken token = tokenCache.get();
             </div>
             <div class="code-content-wrapper">
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-              
+
               <div id="start-curl" class="tab-code-block">
 <pre><span class="token-keyword">curl</span> -X POST <span class="token-string">"https://gateway.example.com/api/2.0/genie/spaces/01ef123456789/start-conversation?source_system=CUBE&amp;user_id=123"</span> \
   -H <span class="token-string">"Authorization: Bearer &lt;OAUTH_ACCESS_TOKEN&gt;"</span> \
@@ -1126,7 +1126,7 @@ message_id = data[<span class="token-string">"message"</span>][<span class="toke
             </div>
             <div class="code-content-wrapper">
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-              
+
               <div id="poll-curl" class="tab-code-block">
 <pre><span class="token-keyword">curl</span> -X GET <span class="token-string">"https://gateway.example.com/api/2.0/genie/spaces/01ef123456789/conversations/01ef987654321_conv/messages/msg_01ef000111222?source_system=CRM&user_id=dev@company.com"</span> \
   -H <span class="token-string">"Authorization: Bearer &lt;OAUTH_ACCESS_TOKEN&gt;"</span> \
@@ -1265,7 +1265,7 @@ message_id = data[<span class="token-string">"message"</span>][<span class="toke
             </div>
             <div class="code-content-wrapper">
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-              
+
               <div id="qres-curl" class="tab-code-block">
 <pre><span class="token-keyword">curl</span> -X GET <span class="token-string">"https://gateway.example.com/api/2.0/genie/spaces/01ef123456789/conversations/01ef987654321_conv/messages/msg_01ef000111222/attachments/att_query_998877/query-result?source_system=CRM&user_id=dev@company.com"</span> \
   -H <span class="token-string">"Authorization: Bearer &lt;OAUTH_ACCESS_TOKEN&gt;"</span> \
@@ -1328,7 +1328,7 @@ message_id = data[<span class="token-string">"message"</span>][<span class="toke
             </div>
             <div class="code-content-wrapper">
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-              
+
               <div id="msg-curl" class="tab-code-block">
 <pre><span class="token-keyword">curl</span> -X POST <span class="token-string">"https://gateway.example.com/api/2.0/genie/spaces/01ef123456789/conversations/01ef987654321_conv/messages?source_system=CRM&user_id=dev@company.com"</span> \
   -H <span class="token-string">"Authorization: Bearer &lt;OAUTH_ACCESS_TOKEN&gt;"</span> \
@@ -1425,11 +1425,14 @@ message_id = data[<span class="token-string">"message"</span>][<span class="toke
       <hr style="border: none; border-top: 1px solid var(--border-color); margin: 40px 0;">
       <h2 id="unified-agent-list" class="section-title">API Reference: Unified Agents</h2>
       <p>CUBE의 AI Agent 선택 화면에서 사용할 논리 Agent 목록입니다. 실제 Databricks Space ID,
-        Agent ID, Serving Endpoint 이름과 URL은 반환하지 않습니다.</p>
+        Agent ID, Serving Endpoint 이름과 URL은 반환하지 않습니다. 기본값은 활성 Agent만 반환하며,
+        <code>include_inactive=true</code>를 지정하면 해당 시스템에서 해제된 Agent도 동기화할 수 있습니다.</p>
       <div class="endpoint-header">
         <span class="method-badge get">GET</span>
-        <span class="endpoint-path">/api/v1/agents?source_system=CUBE&amp;user_id=user-10001</span>
+        <span class="endpoint-path">/api/v1/agents?source_system=CUBE&amp;include_inactive=false</span>
       </div>
+      <p><code>source_system</code>은 필수입니다. <code>user_id</code>는 Agent 목록에서만
+        선택 사항이며, 기존 호출의 하위 호환을 위해 전달해도 되지만 목록 필터링에는 사용하지 않습니다.</p>
       <div class="code-block"><pre>[
   {
     <span class="token-string">"agent_id"</span>: <span class="token-string">"HEALTHCARE_SUPERVISOR"</span>,
@@ -1441,9 +1444,64 @@ message_id = data[<span class="token-string">"message"</span>][<span class="toke
       <span class="token-string">"long_task"</span>: true,
       <span class="token-string">"cancel"</span>: true
       ,<span class="token-string">"approval"</span>: true
-    }
+    },
+    <span class="token-string">"active"</span>: true,
+    <span class="token-string">"registered_at"</span>: <span class="token-string">"2026-09-17T01:00:00Z"</span>,
+    <span class="token-string">"released_at"</span>: <span class="token-string">"2026-09-17T02:00:00Z"</span>,
+    <span class="token-string">"updated_at"</span>: <span class="token-string">"2026-09-29T00:30:00Z"</span>,
+    <span class="token-string">"deleted_at"</span>: null
   }
 ]</pre></div>
+      <div class="info-box" style="margin-top:16px;">
+        <strong>Agent 동기화 시각</strong><br>
+        <code>registered_at</code>은 Gateway에 Agent가 최초 등록된 시각,
+        <code>released_at</code>은 해당 시스템에 Agent 매핑이 적용된 시각입니다.
+        <code>updated_at</code>은 Agent 또는 시스템 매핑의 마지막 변경 시각입니다.
+        <code>deleted_at</code>은 해당 시스템에서 매핑이 해제되거나 효력이 종료된 시각이며,
+        다른 시스템의 Agent 사용 여부에는 영향을 주지 않습니다.
+      </div>
+      <h3 style="margin-top:28px;">응답 필드 설명 및 CUBE <code>t_ai_agent</code> 권장 매핑</h3>
+      <p>아래 매핑은 CUBE가 Gateway Agent 목록을 자체 캐시 테이블에 동기화할 때 사용할 수 있는
+        권장 예시입니다. Gateway 응답과 직접 대응하지 않는 컬럼은 CUBE 정책으로 관리합니다.</p>
+      <div class="table-wrapper" style="margin-top:16px;">
+        <table>
+          <thead>
+            <tr><th>Gateway JSON 필드</th><th>값 예시·의미</th><th>CUBE 권장 컬럼</th><th>매핑 방식</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>agent_id</code></td><td><code>HEALTHCARE_SUPERVISOR</code><br>Gateway 논리 Agent 식별자</td><td><code>AGENT_ID</code></td><td>직접 저장. Databricks 내부 ID가 아님</td></tr>
+            <tr><td><code>name</code></td><td>화면 표시용 Agent명</td><td><code>AGENT_NM</code></td><td>직접 저장</td></tr>
+            <tr><td><code>description</code></td><td>Agent 설명. 값이 없으면 <code>null</code></td><td><code>AGENT_DESC</code></td><td>직접 저장</td></tr>
+            <tr><td><code>agent_type</code></td><td><code>GENIE</code> 또는 <code>SUPERVISOR</code></td><td>별도 컬럼 권장</td><td><code>VENDOR_CD</code>와 의미가 다름</td></tr>
+            <tr><td><code>interaction_modes</code></td><td>지원 호출 방식: <code>CHAT</code>, <code>AGENT</code>, <code>SUPERVISOR</code></td><td>별도 컬럼 또는 JSON</td><td>CUBE의 호출 방식과 UI 제어에 사용</td></tr>
+            <tr><td><code>capabilities.streaming</code></td><td>SSE 응답 지원 여부</td><td>별도 컬럼 또는 JSON</td><td>클라이언트 기능 활성화에 사용</td></tr>
+            <tr><td><code>capabilities.long_task</code></td><td>장기 작업 continuation 지원 여부</td><td>별도 컬럼 또는 JSON</td><td>클라이언트 기능 활성화에 사용</td></tr>
+            <tr><td><code>capabilities.cancel</code></td><td>진행 중 Run 취소 지원 여부</td><td>별도 컬럼 또는 JSON</td><td>취소 버튼 활성화에 사용</td></tr>
+            <tr><td><code>capabilities.approval</code></td><td>도구 승인·거절 처리 지원 여부</td><td>별도 컬럼 또는 JSON</td><td>승인 UI 활성화에 사용</td></tr>
+            <tr><td><code>active</code></td><td>현재 요청 시스템에서 실제 사용 가능한지 여부</td><td><code>DEL_DTTM</code> 처리 기준</td><td><code>true</code>면 사용, <code>false</code>면 논리 삭제 처리</td></tr>
+            <tr><td><code>registered_at</code></td><td>Agent가 Gateway에 최초 등록된 시각</td><td>참고 정보</td><td>CUBE 자체 <code>REG_DTTM</code>과 구분 권장</td></tr>
+            <tr><td><code>released_at</code></td><td>해당 시스템에 Agent 매핑이 공개된 시각</td><td><code>REL_DT</code></td><td>CUBE가 날짜만 관리하면 date로 변환</td></tr>
+            <tr><td><code>updated_at</code></td><td>Agent 또는 시스템 매핑의 최종 변경 시각</td><td><code>MOD_DTTM</code> 갱신 판단</td><td>이전 동기화 값과 비교하여 UPSERT 결정</td></tr>
+            <tr><td><code>deleted_at</code></td><td>해당 시스템의 Agent 매핑 해제·종료 시각</td><td><code>DEL_DTTM</code></td><td><code>null</code>이면 삭제되지 않음</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="info-box" style="margin-top:16px;">
+        <strong>CUBE 동기화 처리 예시</strong><br>
+        <code>agent_id</code>를 기준으로 UPSERT합니다. <code>active=true</code>이면 신규 Agent를
+        INSERT하거나 <code>updated_at</code> 변경 시 UPDATE하고 <code>DEL_DTTM</code>을 NULL로
+        유지합니다. <code>active=false</code>이면 물리 삭제하지 않고 <code>deleted_at</code>을
+        <code>DEL_DTTM</code>에 저장합니다. 전체 동기화에는
+        <code>include_inactive=true</code>를 사용합니다.
+      </div>
+      <div class="callout callout-warning" style="margin:16px 0;">
+        <span class="callout-icon">!</span>
+        <div><strong>CUBE 컬럼 길이를 함께 확인해야 합니다.</strong><br>
+          Gateway의 <code>agent_id</code>는 최대 100자, <code>name</code>은 최대 200자이며
+          <code>description</code>은 TEXT입니다. 예시 CUBE 테이블의 <code>AGENT_ID varchar(50)</code>,
+          <code>AGENT_NM varchar(100)</code>, <code>AGENT_DESC varchar(300)</code>보다 긴 값이 등록될 수
+          있으므로 CUBE 컬럼 확장 또는 Gateway 등록값 길이 제한을 사전에 합의해야 합니다.</div>
+      </div>
       <div class="info-box" style="margin-top:16px;">
         <div id="supervisor-overview"><strong>Supervisor 통합 API</strong><br>
           <code>POST /api/v1/agents/{agent_id}/responses</code>는 정규화 SSE를 반환합니다.
@@ -1536,6 +1594,9 @@ message_id = data[<span class="token-string">"message"</span>][<span class="toke
         <div class="endpoint-body">
           <div class="endpoint-info">
             <p>Server-Sent Events(SSE) 방식으로 Databricks가 제공하는 응답·진행 상태 이벤트를 수신합니다. 각 이벤트의 <code>sequence_number</code> 순서를 지키고, <code>response.completed</code> 또는 <code>response.failed</code>를 받으면 스트림 처리를 종료합니다. Gateway는 별도의 heartbeat나 가상 token delta를 삽입하지 않습니다.</p>
+            <p><code>{agent_id}</code>는 Agent 목록이 반환한 Gateway 논리 ID(예: <code>AGT_E53CB42CEEA1</code>)를
+              그대로 사용합니다. Gateway가 등록된 Databricks Agent ID로 변환하며,
+              기존 Databricks 실제 ID 호출도 하위 호환을 위해 허용합니다.</p>
             <p>브라우저 기본 <code>EventSource</code>는 POST Body와 <code>X-API-Key</code> 헤더를 보내기 어렵기 때문에 사용하지 않습니다. 외부 시스템 백엔드에서는 HTTP 스트리밍 클라이언트를, 브라우저에서는 <code>fetch()</code> 스트림 또는 자체 백엔드 중계를 사용합니다.</p>
 
             <h4 style="margin-top: 16px; font-size: 0.9rem;">JSON Request Body</h4>
@@ -1581,9 +1642,9 @@ message_id = data[<span class="token-string">"message"</span>][<span class="toke
             </div>
             <div class="code-content-wrapper">
               <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-              
+
               <div id="agent-curl" class="tab-code-block">
-<pre><span class="token-keyword">curl</span> -N -X POST <span class="token-string">"https://gateway.example.com/api/2.0/genie/agents/01f1a76594b21496a5aca3939b9c3f93/responses?source_system=CUBE&amp;user_id=1234"</span> \
+<pre><span class="token-keyword">curl</span> -N -X POST <span class="token-string">"https://gateway.example.com/api/2.0/genie/agents/AGT_E53CB42CEEA1/responses?source_system=CUBE&amp;user_id=1234"</span> \
   -H <span class="token-string">"Authorization: Bearer &lt;OAUTH_ACCESS_TOKEN&gt;"</span> \
   -H <span class="token-string">"X-API-Key: gw_live_secret_key_123"</span> \
   -H <span class="token-string">"Content-Type: application/json"</span> \
@@ -1603,7 +1664,7 @@ message_id = data[<span class="token-string">"message"</span>][<span class="toke
               <div id="agent-py" class="tab-code-block" style="display: none;">
 <pre><span class="token-keyword">import</span> httpx
 
-url = <span class="token-string">"https://gateway.example.com/api/2.0/genie/agents/01f1a76594b21496a5aca3939b9c3f93/responses"</span>
+url = <span class="token-string">"https://gateway.example.com/api/2.0/genie/agents/AGT_E53CB42CEEA1/responses"</span>
 headers = {
     <span class="token-string">"Authorization"</span>: <span class="token-string">"Bearer &lt;OAUTH_ACCESS_TOKEN&gt;"</span>,
     <span class="token-string">"X-API-Key"</span>: <span class="token-string">"gw_live_secret_key_123"</span>,
@@ -1911,7 +1972,7 @@ webClient.post()
       const codeBlock = btn.closest('.endpoint-code');
       codeBlock.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
       codeBlock.querySelectorAll('.tab-code-block').forEach(b => b.style.display = 'none');
-      
+
       btn.classList.add('active');
       document.getElementById(targetId).style.display = 'block';
     }
@@ -1921,7 +1982,7 @@ webClient.post()
       const wrapper = btn.closest('.code-content-wrapper');
       const activeBlock = Array.from(wrapper.querySelectorAll('.tab-code-block')).find(b => b.style.display !== 'none');
       if (!activeBlock) return;
-      
+
       const codeText = activeBlock.querySelector('pre').innerText;
       navigator.clipboard.writeText(codeText).then(() => {
         const originalText = btn.innerText;
@@ -1940,7 +2001,7 @@ webClient.post()
     function filterNav() {
       const query = document.getElementById('navSearch').value.toLowerCase();
       const items = document.querySelectorAll('.nav-item');
-      
+
       items.forEach(item => {
         const text = item.innerText.toLowerCase();
         if (text.includes(query)) {

@@ -48,8 +48,9 @@ Lakebase App Resource가 생성한 App SP 역할명을 Databricks Apps Environme
 2. `005_add_supervisor_agent_foundation.sql`
 3. `006_add_run_execution_lease.sql`
 4. `007_add_supervisor_approval.sql`
-5. `002_grant_runtime_role.sql` 재실행
-6. `003_verify_installation.sql`
+5. `008_rename_default_admin.sql`
+6. `002_grant_runtime_role.sql` 재실행
+7. `003_verify_installation.sql`
 
 `005_add_supervisor_agent_foundation.sql`은 기존 PK·FK·데이터를 유지하면서 Agent·Conversation
 Master를 `ai_*` 공통 명칭으로 일반화하고 Supervisor 정책 컬럼과 Run·Item·Event 테이블을
@@ -63,6 +64,10 @@ Master를 `ai_*` 공통 명칭으로 일반화하고 Supervisor 정책 컬럼과
 `007_add_supervisor_approval.sql`은 `WAITING_APPROVAL` Run 상태와 Web Search/MCP 승인 감사
 테이블을 추가한다. 새 테이블 권한 적용을 위해 실제 Runtime 역할명으로 `002`를 다시 실행한
 후 애플리케이션을 배포한다.
+
+`008_rename_default_admin.sql`은 기존 단일 관리자 ID `shnam`을 `admin`으로 변경한다. 관리자
+행의 PK는 유지되므로 기존 비밀번호, 세션 및 감사 이력은 보존된다. `admin`과 `shnam` 행이
+동시에 존재하면 데이터 충돌을 피하기 위해 명시적인 오류로 중단한다.
 
 `005`는 기존/공통 Agent·Conversation 테이블과 `api_req_hst`가 없으면 명시적인 오류로
 중단한다. `006`은 `ai_run_mst`가 없으면 중단하며, 이 경우 신규 설치라면 `001`을 실행하고

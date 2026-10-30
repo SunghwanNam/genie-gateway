@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Supervisor Agent 검증</title>
+  <link rel="stylesheet" href="/custom/supervisor-chat/assets/supervisor.css">
+  <link rel="stylesheet" href="/custom/supervisor-chat/assets/approval.css">
+</head>
+<body>
+  <header><div><strong>Supervisor Agent Lab</strong><span>통합 SSE·long task·중단 검증</span></div><a href="/custom/chat">Genie Chat</a></header>
+  <main>
+    <section class="toolbar">
+      <label>Supervisor<select id="agentSelect"></select></label>
+      <label>대화 이력<select id="conversationSelect"><option value="">대화를 선택하세요</option></select></label>
+      <label class="check"><input id="longTask" type="checkbox"> Long task</label>
+      <button id="newButton" type="button">새 대화</button>
+    </section>
+    <section id="empty" class="empty"><b>S</b><h1>Supervisor에게 무엇을 요청할까요?</h1><p>도구 실행과 장기 작업 이벤트를 실시간으로 확인합니다.</p></section>
+    <section id="messages" class="messages" aria-live="polite"></section>
+  </main>
+  <button id="scrollToBottom" class="scroll-to-bottom" type="button" aria-label="최신 답변으로 이동" title="최신 답변으로 이동" hidden>↓</button>
+  <footer>
+    <form id="composer"><textarea id="input" rows="1" maxlength="16384" placeholder="복합 분석 작업을 요청하세요"></textarea><button id="send" type="submit">전송</button><button id="cancel" type="button" hidden>중단</button></form>
+    <div id="status">준비</div>
+  </footer>
+  <script src="/custom/supervisor-chat/assets/supervisor.js" defer></script>
+</body>
+</html>

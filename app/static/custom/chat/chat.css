@@ -352,7 +352,8 @@ button {
 .agent-heading select {
   display: block;
   width: min(42vw, 360px);
-  max-width: 280px;
+  max-width: 400px;
+  font-size: 10px;
   padding: 7px 30px 7px 10px;
   border: 1px solid var(--line);
   border-radius: 9px;

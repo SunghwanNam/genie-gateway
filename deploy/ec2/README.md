@@ -29,6 +29,9 @@ chmod +x deploy/ec2/build_tarball.sh
 build/ec2/genie-gateway-<VERSION>.tar.gz
 ```
 
+최종 실행 패키지의 `sql/installation/`에는 신규 설치 SQL과 기존 환경 업데이트 SQL이
+모두 포함된다.
+
 ## 2. EC2에 PostgreSQL 15 설치
 
 ```bash
@@ -115,6 +118,19 @@ sudo journalctl -u genie-gateway -f
 ```bash
 sudo tar -xzf /tmp/genie-gateway-<VERSION>.tar.gz -C /opt/genie-gateway/packages
 cd /opt/genie-gateway/packages/genie-gateway-<VERSION>
+sudo systemctl stop genie-gateway
+
+# 이번 관리자 ID 전환이 아직 적용되지 않은 기존 DB에서 한 번만 실행
+PGPASSWORD='<DB_PASSWORD>' psql -h 127.0.0.1 -U genie_gateway -d genie_gateway \
+  -f sql/installation/008_rename_default_admin.sql
+
 sudo ./install.sh
 sudo systemctl restart genie-gateway
+
+curl http://127.0.0.1:38085/health/live
+sudo systemctl status genie-gateway --no-pager
 ```
+
+`008_rename_default_admin.sql`은 관리자 행의 PK를 유지한 채 ID만 `admin`으로 변경하므로
+기존 비밀번호·세션·감사 이력이 보존된다. 이미 적용한 환경에서 다시 실행해도 변경 사항은
+없지만, `admin`과 `shnam` 행이 동시에 존재하면 충돌 방지를 위해 중단한다.

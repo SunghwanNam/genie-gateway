@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import json
 import unittest
+from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import FastAPI
@@ -25,6 +26,7 @@ from app.domain.models import (
 )
 from app.main import app
 from app.mappers.genie_message_mapper import map_chat_message_snapshots, strip_user_context
+from app.repositories.admin_repository import AdminRepository
 from app.repositories.gateway_repository import GatewayRepository
 from app.schemas.genie import AgentModeResponseRequest
 from app.services.genie_gateway import (
@@ -231,6 +233,23 @@ class ContractTests(unittest.TestCase):
                 }
             )
 
+    def test_admin_agent_soft_delete_and_restore_routes_exist(self) -> None:
+        routes = {
+            (method, route.path)
+            for route in app.routes
+            for method in getattr(route, "methods", set())
+        }
+        self.assertIn(("DELETE", "/custom/admin/api/agents/{agent_id}"), routes)
+        self.assertIn(("POST", "/custom/admin/api/agents/{agent_id}/restore"), routes)
+
+    def test_agent_lifecycle_clears_end_date_and_exposes_agent_deactivation(self) -> None:
+        import inspect
+
+        admin_source = inspect.getsource(AdminRepository)
+        gateway_source = inspect.getsource(GatewayRepository.list_available_agents)
+        self.assertIn("eff_end_dt=NULL", admin_source)
+        self.assertIn("a.use_yn = 'N'", gateway_source)
+
     def test_official_genie_endpoint_inventory(self) -> None:
         routes = {
             (method, route.path)
@@ -284,6 +303,22 @@ class ContractTests(unittest.TestCase):
             if parameter.get("in") == "query"
         }
         self.assertTrue({"source_system", "user_id"} <= query_parameters)
+
+    def test_agent_list_user_id_is_optional_only_for_list_operation(self) -> None:
+        schema = app.openapi()
+        list_parameters = {
+            parameter["name"]: parameter
+            for parameter in schema["paths"]["/api/v1/agents"]["get"]["parameters"]
+        }
+        response_parameters = {
+            parameter["name"]: parameter
+            for parameter in schema["paths"]["/api/v1/agents/{agent_id}/responses"]["post"]["parameters"]
+        }
+
+        self.assertTrue(list_parameters["source_system"]["required"])
+        self.assertFalse(list_parameters["user_id"]["required"])
+        self.assertTrue(response_parameters["source_system"]["required"])
+        self.assertTrue(response_parameters["user_id"]["required"])
 
     def test_custom_chat_routes_are_hidden_from_openapi(self) -> None:
         route_paths = {route.path for route in app.routes}
@@ -433,6 +468,64 @@ class ContractTests(unittest.TestCase):
 
 
 class AsyncGatewayTests(unittest.IsolatedAsyncioTestCase):
+    async def test_route_resolution_accepts_logical_agent_code_and_keeps_actual_upstream_id(self) -> None:
+        captured: dict[str, object] = {}
+        row = {
+            "agt_id": 10,
+            "agt_cd": "AGT_E53CB42CEEA1",
+            "agt_mode_cd": "BOTH",
+            "dbx_ws_url": "https://workspace.cloud.databricks.com",
+            "dbx_space_id": "actual-space-id",
+            "dbx_agent_id": "01f1b24392451684bf5462c7ed406250",
+            "dbx_cred_ref_nm": None,
+        }
+
+        class Result:
+            def mappings(self):
+                return self
+
+            def one_or_none(self):
+                return row
+
+        class Session:
+            async def execute(self, statement, params):
+                captured["sql"] = str(statement)
+                captured["params"] = params
+                return Result()
+
+        class DatabaseStub:
+            @asynccontextmanager
+            async def session(self):
+                yield Session()
+
+        repository = GatewayRepository(DatabaseStub(), "genie_gw")  # type: ignore[arg-type]
+        principal = GatewayPrincipal(1, "CUBE_API", 1, "CUBE")
+        route = await repository.resolve_route(principal, "AGT_E53CB42CEEA1", "AGENT")
+
+        self.assertIsNotNone(route)
+        assert route is not None
+        self.assertEqual(route.public_agent_id, "AGT_E53CB42CEEA1")
+        self.assertEqual(route.databricks_agent_id, "01f1b24392451684bf5462c7ed406250")
+        self.assertIn("a.agt_cd = :public_agent_id", captured["sql"])
+        self.assertIn("a.dbx_agent_id = :public_agent_id", captured["sql"])
+        self.assertEqual(captured["params"]["public_agent_id"], "AGT_E53CB42CEEA1")
+
+        legacy_route = await repository.resolve_route(
+            principal,
+            "01f1b24392451684bf5462c7ed406250",
+            "AGENT",
+        )
+        self.assertIsNotNone(legacy_route)
+        assert legacy_route is not None
+        self.assertEqual(
+            legacy_route.public_agent_id,
+            "01f1b24392451684bf5462c7ed406250",
+        )
+        self.assertEqual(
+            legacy_route.databricks_agent_id,
+            "01f1b24392451684bf5462c7ed406250",
+        )
+
     async def test_visualization_proxy_forces_binary_accept_and_preserves_png_body(self) -> None:
         seen: dict[str, object] = {}
         png = b"\x89PNG\r\n\x1a\nmock-png"

@@ -128,7 +128,7 @@ async def setup(r:Request,b:PasswordBody):
         forwarded=r.headers.get("x-forwarded-email","").strip().lower()
         if not allowed or not secrets.compare_digest(forwarded,allowed):
             raise HTTPException(403,"Only the configured administrator can initialize admin")
-    await _repo(r).create_admin(_ph.hash(b.password)); return {"admin_id":"shnam"}
+    await _repo(r).create_admin(_ph.hash(b.password)); return {"admin_id":"admin"}
 
 @router.post("/api/login")
 async def login(r:Request,b:PasswordBody,response:Response):
@@ -139,7 +139,7 @@ async def login(r:Request,b:PasswordBody,response:Response):
     except VerifyMismatchError: raise HTTPException(401,"Invalid credentials")
     token=secrets.token_urlsafe(48); await _repo(r).create_session(token,r.app.state.settings.admin_session_ttl_seconds,_source_ip(r))
     response.set_cookie("gw_admin_session",token,httponly=True,secure=r.url.scheme=="https",samesite="strict",max_age=r.app.state.settings.admin_session_ttl_seconds,path="/custom/admin")
-    return {"admin_id":"shnam"}
+    return {"admin_id":"admin"}
 
 @router.post("/api/logout",status_code=204)
 async def logout(r:Request,response:Response):
@@ -187,7 +187,8 @@ async def rows(r:Request,kind:str):
         await _repo(r).audit("API_KEY_LIST_REVEAL","API_KEY","ALL",_source_ip(r))
         return {"keys":rows}
     if kind not in {"systems","agents"}: raise HTTPException(404)
-    return {kind:await _repo(r).list_rows(kind)}
+    include_inactive=r.query_params.get("include_inactive","").lower() in {"1","true","yes"}
+    return {kind:await _repo(r).list_rows(kind,include_inactive=include_inactive)}
 
 @router.post("/api/systems",status_code=201)
 async def system(r:Request,b:SystemBody):
@@ -206,6 +207,22 @@ async def edit_agent(r:Request,agent_id:int,b:AgentBody):
     try: updated=await _repo(r).update_agent(agent_id,p)
     except ValueError as e: raise HTTPException(404,str(e))
     if not updated: raise HTTPException(404,"Agent not found")
+    return {"ok":True}
+
+@router.delete("/api/agents/{agent_id}")
+async def deactivate_agent(r:Request,agent_id:int,system_code:str):
+    await _auth(r)
+    updated=await _repo(r).deactivate_agent(agent_id,system_code.strip().upper())
+    if not updated: raise HTTPException(404,"Agent mapping not found")
+    await _repo(r).audit("AGENT_DEACTIVATE","AGENT",str(agent_id),_source_ip(r))
+    return {"ok":True}
+
+@router.post("/api/agents/{agent_id}/restore")
+async def restore_agent(r:Request,agent_id:int,system_code:str):
+    await _auth(r)
+    updated=await _repo(r).restore_agent(agent_id,system_code.strip().upper())
+    if not updated: raise HTTPException(404,"Agent mapping not found")
+    await _repo(r).audit("AGENT_RESTORE","AGENT",str(agent_id),_source_ip(r))
     return {"ok":True}
 
 @router.post("/api/keys",status_code=201)

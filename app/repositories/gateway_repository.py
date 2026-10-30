@@ -108,8 +108,9 @@ class GatewayRepository:
     async def list_available_agents(
         self,
         principal: GatewayPrincipal,
+        include_inactive: bool = False,
     ) -> list[dict[str, Any]]:
-        """호출 시스템에 허용된 논리 Agent와 공개 capability만 조회한다."""
+        """호출 시스템의 Agent 목록과 시스템별 공개 수명주기를 조회한다."""
         sql = text(
             f"""
             SELECT a.agt_cd,
@@ -117,21 +118,47 @@ class GatewayRepository:
                    a.agt_desc_cn,
                    a.agt_typ_cd,
                    a.agt_mode_cd,
-                   a.long_task_use_yn
+                   a.long_task_use_yn,
+                   (a.use_yn = 'Y'
+                    AND m.use_yn = 'Y'
+                    AND m.eff_strt_dt <= CURRENT_TIMESTAMP
+                    AND (m.eff_end_dt IS NULL OR m.eff_end_dt > CURRENT_TIMESTAMP)) AS active,
+                   a.reg_dt AS registered_at,
+                   m.eff_strt_dt AS released_at,
+                   GREATEST(
+                       COALESCE(a.mod_dt, a.reg_dt),
+                       COALESCE(m.mod_dt, m.reg_dt)
+                   ) AS updated_at,
+                   CASE
+                       WHEN a.use_yn = 'N' OR m.use_yn = 'N' OR m.eff_end_dt <= CURRENT_TIMESTAMP
+                       THEN COALESCE(m.eff_end_dt,GREATEST(COALESCE(a.mod_dt,a.reg_dt),COALESCE(m.mod_dt,m.reg_dt)))
+                       ELSE NULL
+                   END AS deleted_at
               FROM {self._schema}.sys_ai_agt_map m
-              JOIN {self._schema}.ai_agt_mst a
+             JOIN {self._schema}.ai_agt_mst a
                 ON a.agt_id = m.agt_id
-               AND a.use_yn = 'Y'
              WHERE m.sys_id = :system_id
-               AND m.use_yn = 'Y'
                AND m.eff_strt_dt <= CURRENT_TIMESTAMP
-               AND (m.eff_end_dt IS NULL OR m.eff_end_dt > CURRENT_TIMESTAMP)
+               AND (
+                    :include_inactive
+                    OR (
+                        a.use_yn = 'Y'
+                        AND m.use_yn = 'Y'
+                        AND (m.eff_end_dt IS NULL OR m.eff_end_dt > CURRENT_TIMESTAMP)
+                    )
+               )
              ORDER BY m.route_prty_no, a.agt_nm, a.agt_id
             """
         )
         async with self._database.session() as session:
             rows = (
-                await session.execute(sql, {"system_id": principal.sys_id})
+                await session.execute(
+                    sql,
+                    {
+                        "system_id": principal.sys_id,
+                        "include_inactive": include_inactive,
+                    },
+                )
             ).mappings().all()
         return [dict(row) for row in rows]
 
@@ -257,10 +284,14 @@ class GatewayRepository:
                    AND m.use_yn = 'Y'
                    AND m.eff_strt_dt <= CURRENT_TIMESTAMP
                    AND (m.eff_end_dt IS NULL OR m.eff_end_dt > CURRENT_TIMESTAMP)
-                   AND a.{upstream_id_column} = :public_agent_id
+                   AND (
+                       a.agt_cd = :public_agent_id
+                       OR a.{upstream_id_column} = :public_agent_id
+                   )
                    AND a.{upstream_id_column} IS NOT NULL
                    AND (a.agt_mode_cd = :mode OR a.agt_mode_cd = 'BOTH')
-                 ORDER BY m.dflt_yn DESC,
+                 ORDER BY CASE WHEN a.agt_cd = :public_agent_id THEN 0 ELSE 1 END,
+                          m.dflt_yn DESC,
                           m.route_prty_no ASC,
                           m.eff_strt_dt DESC
                  LIMIT 1
@@ -292,7 +323,7 @@ class GatewayRepository:
             agt_id=row["agt_id"],
             agt_cd=row["agt_cd"],
             agt_mode_cd=row["agt_mode_cd"],
-            public_agent_id=(row["dbx_space_id"] if mode == "CHAT" else row["dbx_agent_id"]),
+            public_agent_id=public_agent_id,
             databricks_host=row["dbx_ws_url"],
             databricks_space_id=row["dbx_space_id"],
             databricks_agent_id=row["dbx_agent_id"],

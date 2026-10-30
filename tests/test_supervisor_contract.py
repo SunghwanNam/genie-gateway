@@ -11,6 +11,7 @@ from app.schemas.supervisor import RunStatus, UnifiedAgentResponseRequest
 from app.api.v1.agents import list_agents
 from app.clients.databricks_supervisor import DatabricksSupervisorClient
 from app.core.config import Settings
+from app.core.errors import GatewayError
 from app.domain.models import GatewayPrincipal, GatewayRequestContext, SupervisorRoute
 from app.services.supervisor_sse import SupervisorSseParser
 from app.services.supervisor_sse import normalize_supervisor_frame, SupervisorSseFrame
@@ -491,9 +492,12 @@ class UnifiedAgentApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(captured["authorization"], "Bearer test-token")
 
     async def test_agent_list_exposes_capabilities_without_upstream_resource(self) -> None:
+        now = datetime.now(timezone.utc)
+
         class FakeRepository:
-            async def list_available_agents(self, principal):
+            async def list_available_agents(self, principal, include_inactive=False):
                 self.principal = principal
+                self.include_inactive = include_inactive
                 return [
                     {
                         "agt_cd": "HEALTHCARE_SUPERVISOR",
@@ -502,19 +506,46 @@ class UnifiedAgentApiTests(unittest.IsolatedAsyncioTestCase):
                         "agt_typ_cd": "SUPERVISOR",
                         "agt_mode_cd": "SUPERVISOR",
                         "long_task_use_yn": "Y",
+                        "active": True,
+                        "registered_at": now,
+                        "released_at": now,
+                        "updated_at": now,
+                        "deleted_at": None,
                         "dbx_serving_ep_nm": "must-not-leak",
                     }
                 ]
 
         principal = GatewayPrincipal(1, "CUBE_API", 10, "CUBE")
-        context = GatewayRequestContext(principal, "CUBE", "user-1")
-        result = await list_agents(context, FakeRepository())
+        repository = FakeRepository()
+        result = await list_agents(
+            principal,
+            repository,
+            "CUBE",
+            include_inactive=True,
+        )
         payload = result[0].model_dump()
 
         self.assertEqual(payload["agent_id"], "HEALTHCARE_SUPERVISOR")
         self.assertEqual(payload["agent_type"], "SUPERVISOR")
         self.assertTrue(payload["capabilities"]["long_task"])
+        self.assertTrue(payload["active"])
+        self.assertEqual(payload["registered_at"], now)
+        self.assertEqual(payload["released_at"], now)
+        self.assertEqual(payload["updated_at"], now)
+        self.assertIsNone(payload["deleted_at"])
+        self.assertTrue(repository.include_inactive)
         self.assertNotIn("dbx_serving_ep_nm", payload)
+
+    async def test_agent_list_rejects_source_system_mismatch(self) -> None:
+        class FakeRepository:
+            async def list_available_agents(self, principal, include_inactive=False):
+                raise AssertionError("repository must not be called")
+
+        principal = GatewayPrincipal(1, "CUBE_API", 10, "CUBE")
+
+        with self.assertRaisesRegex(GatewayError, "source_system does not match") as raised:
+            await list_agents(principal, FakeRepository(), "PORTAL")
+        self.assertEqual(raised.exception.status_code, 403)
 
 
 if __name__ == "__main__":

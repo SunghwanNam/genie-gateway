@@ -100,6 +100,11 @@ class UnifiedAgentSummary(BaseModel):
     agent_type: Literal["GENIE", "SUPERVISOR"]
     interaction_modes: list[Literal["CHAT", "AGENT", "SUPERVISOR"]]
     capabilities: AgentCapabilities
+    active: bool
+    registered_at: datetime
+    released_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None = None
 
 
 class RunError(BaseModel):

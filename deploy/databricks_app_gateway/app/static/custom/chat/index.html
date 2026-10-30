@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Genie Data Chat</title>
+  <link rel="stylesheet" href="/custom/chat/assets/chat.css">
+</head>
+
+<body>
+  <div class="app-layout">
+    <aside id="sidebar" class="sidebar" aria-label="대화 이력">
+      <div class="sidebar-header">
+        <a class="brand" href="/custom/chat" aria-label="Genie Data Chat 홈">
+          <span class="brand-mark" aria-hidden="true">G</span>
+          <span class="brand-copy"><strong>Genie Data Chat</strong><small>AI/BI 데이터 질의</small></span>
+        </a>
+        <button id="collapseSidebarButton" class="icon-button" type="button" aria-label="사이드바 접기">‹</button>
+      </div>
+
+      <button id="newChatButton" class="new-chat-button" type="button">
+        <span aria-hidden="true">＋</span><span>새 대화</span>
+      </button>
+
+      <div class="history-search">
+        <span aria-hidden="true">⌕</span>
+        <input id="historySearchInput" type="search" placeholder="대화 검색" aria-label="대화 검색">
+      </div>
+
+      <div class="history-heading">
+        <span>대화 이력</span>
+        <button id="refreshHistoryButton" class="mini-button" type="button" aria-label="대화 이력 새로고침">↻</button>
+      </div>
+      <nav id="historyList" class="history-list" aria-live="polite"></nav>
+
+      <div class="sidebar-footer">
+        <!--<span class="status-dot" aria-hidden="true"></span>-->
+        <!--<span>status</span>-->
+      </div>
+    </aside>
+
+    <button id="sidebarBackdrop" class="sidebar-backdrop" type="button" aria-label="사이드바 닫기"></button>
+
+    <section class="workspace">
+      <header class="workspace-header">
+        <button id="openSidebarButton" class="icon-button mobile-only" type="button" aria-label="대화 이력 열기">☰</button>
+        <div class="agent-heading">
+          <select id="agentSelect" aria-label="Genie Agent 선택"></select>
+          <span id="agentName" class="agent-name">Genie Agent</span>
+          <small>AI/BI Genie 기반 데이터 질의</small>
+        </div>
+        <div class="header-actions">
+          <button id="copyConversationButton" class="ghost-button" type="button" hidden>Conversation ID 복사</button>
+          <!--<button id="headerNewChatButton" class="ghost-button" type="button">새 대화</button>-->
+        </div>
+      </header>
+
+      <main id="chatMain" class="chat-main">
+        <section id="emptyState" class="empty-state" aria-labelledby="emptyTitle">
+          <span class="hero-mark" aria-hidden="true">G</span>
+          <p class="eyebrow">DATA INTELLIGENCE</p>
+          <h1 id="emptyTitle">무엇을 분석할까요?</h1>
+          <p>업무 데이터를 자연어로 질문하고 답변과 생성 SQL을 함께 확인하세요.</p>
+          <div class="suggestion-list" aria-label="추천 질문">
+            <button class="suggestion-chip" type="button">건강검진 위험점수의 전월 대비 변화량을 보여줘</button>
+            <button class="suggestion-chip" type="button">NYC 택시 월별 총 요금과 운행거리의 전월 대비 변화를 보여줘</button>
+            <button class="suggestion-chip" type="button">파이프라인 실행 건수와 실패율의 전월 대비 변화를 알려줘</button>
+            <button class="suggestion-chip" type="button">흡연 관련 주요 이상 징후가 있는지 확인해줘</button>
+          </div>
+        </section>
+
+        <section id="messageList" class="message-list" aria-live="polite" aria-label="대화 내용"></section>
+      </main>
+
+      <footer class="composer-wrap">
+        <form id="composerForm" class="composer">
+          <textarea id="messageInput" rows="1" maxlength="10000" placeholder="Genie에 질문하세요"
+            aria-label="질문 입력"></textarea>
+          <div class="mode-switch" role="group" aria-label="응답 모드">
+            <button type="button" data-mode="AGENT">✦ Agent</button>
+            <button type="button" data-mode="CHAT" class="active">💬 채팅</button>
+          </div>
+          <button id="sendButton" class="send-button" type="submit" aria-label="질문 전송">
+            <span aria-hidden="true">↑</span>
+          </button>
+        </form>
+        <div class="composer-meta">
+          <!--<span id="conversationLabel">새 Conversation</span>-->
+          <!--<span>Enter 전송 · Shift+Enter 줄바꿈</span>-->
+        </div>
+      </footer>
+    </section>
+  </div>
+
+  <button id="scrollToBottomButton" class="scroll-to-bottom-button" type="button" aria-label="맨 아래로 이동" hidden>
+    <span aria-hidden="true">↓</span>
+  </button>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <template id="historyItemTemplate">
+    <div class="history-item">
+      <button class="history-title" type="button"></button>
+      <details class="history-menu">
+        <summary aria-label="대화 메뉴">···</summary>
+        <div class="history-menu-popover">
+          <button data-action="rename" type="button">이름 변경</button>
+          <button data-action="copy" type="button">ID 복사</button>
+          <button data-action="delete" class="danger-text" type="button">삭제</button>
+        </div>
+      </details>
+    </div>
+  </template>
+
+  <template id="userMessageTemplate">
+    <article class="message-row user-row">
+      <div class="message-bubble user-bubble"></div>
+    </article>
+  </template>
+
+  <template id="assistantMessageTemplate">
+    <article class="message-row assistant-row">
+      <div class="assistant-avatar" aria-hidden="true">G</div>
+      <div class="assistant-content">
+        <div class="assistant-heading">
+          <strong>Genie</strong>
+          <span class="message-status"></span>
+        </div>
+        <div class="answer-content pending"><span class="typing-dots">답변을 준비하고 있습니다</span></div>
+        <div class="attachment-list"></div>
+        <div class="follow-up-section" hidden>
+          <strong>추천 후속 질문</strong>
+          <div class="follow-up-list"></div>
+        </div>
+        <div class="retry-area"></div>
+        <!-- [운영자 가이드] 아래 '상세정보(Status, Message ID, Conversation ID)' 영역은 운영/디버깅용입니다. -->
+        <!-- 일반 사용자 화면에서 숨기려면 <details> 요소를 주석 처리하거나 hidden 속성을 추가하세요. -->
+        <details class="technical-details">
+          <summary>상세정보</summary>
+          <dl></dl>
+        </details>
+      </div>
+    </article>
+  </template>
+
+  <script src="/custom/chat/assets/agent-mode.js" defer></script>
+  <script src="/custom/chat/assets/chat.js" defer></script>
+</body>
+
+</html>

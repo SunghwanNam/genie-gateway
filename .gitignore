@@ -34,7 +34,7 @@ tmp/
 visualizations/
 
 # 배포 스크립트가 원본 app/에서 매번 생성하는 Databricks Apps 복사본
-deploy/databricks_app_gateway/app/
+#deploy/databricks_app_gateway/app/
 
 # 개인 IDE·AI 도구 설정 및 로컬 작업 지침
 .cursor/

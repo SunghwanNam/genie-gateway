@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
+from typing import Annotated
 
 from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -11,6 +12,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from app.api.dependencies import (
     GatewayContextDependency,
     GatewayRepositoryDependency,
+    PrincipalDependency,
     RunExecutionManagerDependency,
     RunOrchestratorDependency,
     RunRepositoryDependency,
@@ -35,11 +37,39 @@ router = APIRouter(prefix="/api/v1/agents", tags=["Unified AI Agents"])
 
 @router.get("", response_model=list[UnifiedAgentSummary])
 async def list_agents(
-    context: GatewayContextDependency,
+    principal: PrincipalDependency,
     repository: GatewayRepositoryDependency,
+    source_system: Annotated[
+        str,
+        Query(min_length=1, max_length=50, pattern=r"^[A-Za-z0-9_-]+$"),
+    ],
+    include_inactive: bool = Query(
+        default=False,
+        description="비활성화되거나 효력이 종료된 시스템-Agent 매핑 포함 여부",
+    ),
+    user_id: Annotated[
+        str | None,
+        Query(
+            min_length=1,
+            max_length=200,
+            pattern=r"^[A-Za-z0-9._@-]+$",
+            description="목록 조회에서는 선택 사항이며 Agent 필터링에 사용하지 않음",
+        ),
+    ] = None,
 ) -> list[UnifiedAgentSummary]:
     """인증 시스템에서 선택 가능한 Agent를 실제 Databricks 리소스 없이 반환한다."""
-    rows = await repository.list_available_agents(context.principal)
+    normalized_system = source_system.strip().upper()
+    if normalized_system != principal.sys_cd.upper():
+        raise GatewayError(
+            403,
+            "PERMISSION_DENIED",
+            "source_system does not match the authenticated API client.",
+        )
+
+    rows = await repository.list_available_agents(
+        principal,
+        include_inactive=include_inactive,
+    )
     result: list[UnifiedAgentSummary] = []
     for row in rows:
         mode = row["agt_mode_cd"]
@@ -57,6 +87,11 @@ async def list_agents(
                     cancel=mode in {"AGENT", "BOTH", "SUPERVISOR"},
                     approval=row["agt_typ_cd"] == "SUPERVISOR",
                 ),
+                active=row["active"],
+                registered_at=row["registered_at"],
+                released_at=row["released_at"],
+                updated_at=row["updated_at"],
+                deleted_at=row["deleted_at"],
             )
         )
     return result

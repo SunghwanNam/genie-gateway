@@ -153,6 +153,12 @@ Conversation 소유권 원장으로 재사용한다. 별도 소유권 테이블�
 
 `genie_gw.gw_oper_cfg_mst`는 Admin Web에서 관리할 Gateway 런타임 운영 설정 저장소다. 현재는 Supervisor 전체·사용자·사용자별 동일 Agent 활성 Run 한도를 저장하며, 새 Run 생성 트랜잭션에서 조회해 즉시 적용한다.
 
+Admin Web의 Agent 삭제는 물리 삭제가 아니라 시스템별 매핑 종료다. 삭제 시
+`sys_ai_agt_map.use_yn='N'`, `dflt_yn='N'`, `eff_end_dt=CURRENT_TIMESTAMP`를 기록하고,
+해당 Agent에 다른 활성 매핑이 없을 때만 `ai_agt_mst.use_yn='N'`으로 변경한다. 삭제한 Agent는
+기본 관리 목록에서 숨기며 `비활성 포함`으로 조회한 뒤 복구할 수 있다. 복구 시 Agent와 매핑을
+활성화하고 `eff_end_dt`를 `NULL`로 초기화한다. 대화·요청·감사 이력은 삭제하지 않는다.
+
 - 사용 예정 위치: `app/repositories/admin_repository.py` 또는 별도 `OperatingConfigRepository`
 - 변경 진입점: `/custom/admin` 운영 설정 API 및 화면
 - 저장 대상: 기능 플래그, 제한값, 타임아웃 등 재기동 없이 관리할 필요가 있는 비민감 운영 값
@@ -214,6 +220,10 @@ DATABASE_URL=postgresql+asyncpg://...
 - Agent cancel: `POST /api/2.0/genie/agents/{agent_id}/conversations/{conversation_id}/responses/{response_id}/cancel`
 - Agent items: `GET /api/2.0/genie/agents/{agent_id}/conversations/{conversation_id}/items`
 - 상태 확인: `GET /health/live`, `GET /health/ready`
+
+`{space_id}`와 `{agent_id}`는 Agent 목록에서 반환한 Gateway 논리 ID(`agt_cd`)를 기본으로 사용한다.
+Gateway는 논리 ID를 시스템에 매핑된 `dbx_space_id` 또는 `dbx_agent_id`로 변환하여 상향 호출한다.
+기존 연계의 하위 호환을 위해 Databricks 실제 ID를 Path에 직접 전달하는 호출도 허용한다.
 
 ### 7.1 최초 대화 시작
 
